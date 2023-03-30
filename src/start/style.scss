@@ -1,0 +1,50 @@
+@import '../styles/variable';
+
+.setting-body {
+  width: 100%;
+  height: 100%;
+  background-color: $doorBgColor;
+  padding-top: 20px;
+  .key-file {
+    color: #777777;
+  }
+}
+
+.setting-container {
+  position: absolute;
+  width: 360px;
+  left: 50%;
+  top: 50%;
+  margin-left: -180px;
+  transform: translateY(-50%);
+  & > div {
+    // padding: 10px 0;
+    height: 80px;
+  }
+  & > div.key-file {
+    // padding: 10px 0;
+    height: 50px;
+    span {
+      text-transform: initial;
+    }
+  }
+  .reset-btns {
+    display: flex;
+    justify-content: space-between;
+    & > button {
+      width: 42%;
+    }
+  }
+  .setting-remark {
+    padding: 20px 0;
+    color: #999;
+    font-size: 12px;
+    width: 100%;
+  }
+}
+// 暗黑模式
+@media (prefers-color-scheme: dark) {
+  .setting-body {
+    background-color: $darkDoorBgColor;
+  }
+}

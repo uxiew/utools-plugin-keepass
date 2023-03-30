@@ -1,0 +1,28 @@
+{
+  "name": "keepass",
+  "pluginName": "keepass",
+  "description": "Free cross-platform password manager compatible with KeePass",
+  "author": "ChandlerVer5",
+  "homepage": "xxx.com",
+  "version": "0.0.1",
+  "main": "index.html",
+  "logo": "logo.png",
+  "preload": "preload.ts",
+  "features": [
+    {
+      "code": "keepass",
+      "explain": "密码管理器",
+      "cmds": ["keepass", "密码管理"]
+    },
+    {
+      "code": "password",
+      "explain": "开源、安全、简洁的密码管理器",
+      "cmds": ["Password", "密码管理"]
+    },
+    {
+      "code": "random",
+      "explain": "随机密码生成器",
+      "cmds": ["随机密码"]
+    }
+  ]
+}
