@@ -1,8 +1,9 @@
-import React, { ReactComponentElement, ReactElement, Ref } from 'react';
+import React from 'react';
 import RandomPassword from './RandomPassword';
 import Button from '@mui/material/Button';
 import SendIcon from '@mui/icons-material/Send';
 import './style.scss';
+
 export default class Random extends React.Component {
   randomPasswordRef!: RandomPassword;
 

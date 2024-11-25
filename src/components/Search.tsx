@@ -1,15 +1,74 @@
-import React from 'react';
-import AccountForm from './entry/EntryForm';
+import React, { useCallback, useState } from 'react';
+import EntryForm from '../entry/EntryForm';
+import "../styles/search.scss"
+import { T_Entry } from '../typings/data';
+import { shallow, useDataStore } from '../store';
 
 interface SearchPops {
-  searchKey: string;
-  groupTree: {};
+  results: T_Entry[]
+  groupId: string
 }
 
-interface groupDicType {
-  parentId: string;
+function Search(props: SearchPops) {
+  const { results, groupId } = props
+  const getGroup = useDataStore(state => state.getGroup, shallow)
+  const [selectedIndex, setSelectedIndex] = useState(0)
+
+  const select = useCallback((index: number) => {
+    setSelectedIndex(index)
+  }, [])
+
+  const groupName = (groupId: string) => {
+    return getGroup(groupId).title
+  }
+
+  const onAccountUpdate = () => { }
+
+  return (
+    <div className='search-body'>
+      <div className='search-list'>
+        <table>
+          <thead>
+            <tr>
+              <th>分组</th>
+              <th>标题</th>
+              <th>用户名</th>
+            </tr>
+          </thead>
+          <tbody>
+            {results.map((a, i) => (
+              <tr
+                onClick={() => select(i)}
+                className={selectedIndex === i ? 'search-selected' : null}
+                key={a.id}
+              >
+                <td>{groupName(a.groupId)}</td>
+                <td id={a.id + '_title'} >
+                  {a.fields.title}
+                </td>
+                <td id={a.id + '_username'}>
+                  {a.fields.username}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className='search-form'>
+        {
+          <EntryForm
+            onUpdate={onAccountUpdate}
+            entry={results[selectedIndex]}
+          />
+        }
+      </div>
+    </div>
+  );
 }
 
+export default React.memo(Search)
+
+/*
 export default class Search extends React.Component<SearchPops> {
   state = {
     list: [],
@@ -70,8 +129,8 @@ export default class Search extends React.Component<SearchPops> {
   generateGroupDic = (arr, dic) => {
     for (const g of arr) {
       dic[g._id] = g;
-      if (g.childs) {
-        this.generateGroupDic(g.childs, dic);
+      if (g.items) {
+        this.generateGroupDic(g.items, dic);
       }
     }
   };
@@ -180,3 +239,4 @@ export default class Search extends React.Component<SearchPops> {
     );
   }
 }
+*/

@@ -1,0 +1,9 @@
+.detail {
+  &-form{
+    padding: 18px 16px;
+
+    & > div {
+      padding-bottom: 26px;
+    }
+  }
+}

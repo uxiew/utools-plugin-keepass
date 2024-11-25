@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { useDrop } from 'react-dnd';
 import * as React from 'react';
 
@@ -23,14 +22,15 @@ import * as React from 'react';
 //   isOverCurrent: monitor.isOver({ shallow: true }),
 //   canDrop: monitor.canDrop()
 // }))
-interface AccountRootProps {
+interface EntryRootProps {
   onMove: (fromIndex: number, toIndex: number) => number;
   index: number;
   children?: React.ReactElement[];
 }
 
-export default function AccountRoot(props: AccountRootProps): ReactNode {
-  const { children } = props;
+export default function EntryRoot(props: EntryRootProps) {
+  const { children, index } = props;
+  console.log("xxEntryRoot", index)
 
   const [{ isOverCurrent, canDrop }, dropTarget] = useDrop({
     accept: 'account',
@@ -54,7 +54,7 @@ export default function AccountRoot(props: AccountRootProps): ReactNode {
   });
 
   return (
-    <div ref={dropTarget} className='entry-root'>
+    <div className='entry-body' ref={dropTarget}>
       {children}
       {isOverCurrent && canDrop && <div className='entry-root-sort' />}
     </div>

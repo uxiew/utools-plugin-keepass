@@ -3,15 +3,14 @@ import Door from './Door';
 import Start from './start';
 import Home from './Home';
 import type { kdbxDB } from '../utools/keepass';
-import { useStartStore } from './store/start';
-import { useStore } from './store';
+import { useDataStore } from './store';
 import { openKdbx } from './utils/keepass';
 
 export default function Passwords() {
   // const { hadKdbx, setHadKdbx } = useStartStore();
-  const { initState } = useStore();
+  const initState = useDataStore((state) => state.initState);
 
-  const { keyIV } = window.utools.dbStorage.getItem('kdbx') ?? {};
+  const { authKV } = window.utools.dbStorage.getItem('kdbx') ?? {};
   const [hadKdbx, setHadKdbx] = useState(false);
 
   /**
@@ -29,7 +28,7 @@ export default function Passwords() {
   };
 
   const handleOut = () => {
-    if (keyIV) {
+    if (authKV) {
       setHadKdbx(false);
       window.utools.removeSubInput();
     }
@@ -62,6 +61,7 @@ export default function Passwords() {
     this.setState({ hadKdbx: true, keyIV: '' });
   }; */
 
+  // 打开密码
   const handleKdbx = (keedb: kdbxDB) => {
     setHadKdbx(true);
     if (keedb.groups.length > 0) {
@@ -73,8 +73,7 @@ export default function Passwords() {
     // 初始化 settings db 设置
   }
 
-  // if (!hadKdbx) return <Start onEnter={handleKdbx} />;
-  if (!hadKdbx && !keyIV) return <Start onEnter={handleKdbx} />;
-  if (!hadKdbx && keyIV) return <Door onVerify={handleVerify} />;
-  return <Home keyIV={''} onOut={handleOut} />;
+  if (!hadKdbx && !authKV) return <Start onEnter={handleKdbx} />;
+  if (!hadKdbx && authKV) return <Door onVerify={handleVerify} />;
+  return <Home onOut={handleOut} />;
 }

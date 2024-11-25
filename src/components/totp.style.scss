@@ -1,0 +1,12 @@
+.otp-body{
+  width: 260px;
+  padding: 20px;
+
+  & > div{
+    margin:10px 0
+  }
+}
+
+.otp-btn-save{
+  text-align: right;
+}

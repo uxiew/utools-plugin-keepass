@@ -1,0 +1,139 @@
+
+$group-sort-target-color: #e8eaf6;
+.group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  .group-body {
+    flex: 1;
+    height: 0;
+    background-color: $group-sort-target-color;
+    user-select: none;
+    color: #333;
+    font-size: 12px;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .group-footer {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+  }
+}
+
+.group-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: #fff;
+
+  &-child {
+    background-color: $group-sort-target-color;
+  }
+}
+
+.group-node {
+  position: relative;
+  height: 32px;
+  overflow: hidden;
+
+  &-body {
+    cursor: pointer;
+    box-sizing: border-box;
+    position: absolute;
+    display: flex;
+    align-items: center;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background-color: #fff;
+    width: 100%;
+    z-index: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &-selected {
+    background-color: #efebe9;
+  }
+  &-edit-box {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    input {
+      width: 100%;
+      height: 100%;
+      outline: none;
+      box-sizing: border-box;
+      border: 1px solid #eee;
+    }
+  }
+
+  &-preview {
+    position: absolute;
+    padding: 3px 6px;
+    top: 0;
+    background-color: #333;
+    border-radius: 2px;
+    font-size: 12px;
+    color: #fff;
+    z-index: 1;
+    white-space: nowrap;
+  }
+
+  &-title {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    & > svg {
+      width: 16px;
+      padding-right: 2px;
+    }
+  }
+
+  &-badge {
+    padding: 0 5px;
+    & > span {
+      font-size: 12px;
+      background-color: #d7ccc8;
+      color: #666;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 9px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0 4px;
+      box-sizing: border-box;
+    }
+  }
+}
+
+.icon-arrow {
+  &-right,
+  &-down {
+    display: flex;
+    align-items: center;
+    width: 14px;
+    height: 100%;
+    position: relative;
+    z-index: 10;
+  }
+  &-right::after {
+    content: '';
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-left: 6px solid #515151;
+  }
+  &-down::after {
+    content: '';
+    border-bottom: 8px solid #515151;
+    border-left: 8px solid transparent;
+  }
+}

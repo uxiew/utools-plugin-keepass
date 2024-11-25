@@ -1,53 +1,32 @@
-import { ReactComponentElement, useEffect, useState } from 'react';
-import TextField from '@mui/material/TextField';
-import InputAdornment from '@mui/material/InputAdornment';
-import IconButton from '@mui/material/IconButton';
-import Button from '@mui/material/Button';
-import Tooltip from '@mui/material/Tooltip';
-import Popover from '@mui/material/Popover';
-import TitleIcon from '@mui/icons-material/Title';
-import AccountBoxIcon from '@mui/icons-material/AccountBox';
-import LinkIcon from '@mui/icons-material/Link';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import OpenInBrowserIcon from '@mui/icons-material/OpenInBrowser';
-import LockIcon from '@mui/icons-material/Lock';
-import ShuffleIcon from '@mui/icons-material/Shuffle';
-import SendIcon from '@mui/icons-material/Send';
-import RandomPassword from '../password-generator/RandomPassword';
-import type { Entry_Fields, T_Entry } from '../typings/data';
-import { useStore } from '../store';
+import React, { KeyboardEvent } from 'react';
+import { useDataStore, shallow } from '../store';
+import Basis from './Basis';
+import Advanced from './Advanced';
+import TabsContainer from '../components/TabsContainer';
+import AttrViewer, { AnnouncementIcon } from '../components/AttrViewer';
+import {
+  DesignServices as DesignServicesIcon,
+  LibraryAdd as LibraryAddIcon
+} from '@mui/icons-material';
+import type { T_Entry } from '../typings/data';
+import type { TabValue } from '../components/TabsContainer';
+import '../styles/entryForm.scss';
 
 interface Props {
-  onUpdate: (entry: T_Entry) => void;
+  onUpdate: (entry: T_Entry) => void
+  entry: T_Entry
 }
-export default function AccountForm(props: Props) {
-  const isMacOs = window.utools.isMacOS();
-  let randomPasswordRef!: RandomPassword;
 
-  const {
-    selectedGroupId,
-    group2Entries,
-    selectedEntryIndex: entryIndex
-  } = useStore();
+const isMacOs = window.utools.isMacOS();
 
-  const [state, setState] = useState({
-    passwordEye: false,
-    randomPasswordEl: null
-  });
+// AccountForm
+function EntryForm(props: Props) {
+  const [setMessage, entryIndex] = useDataStore(state => [state.setMessage, state.entryIndex], shallow);
+  const { id, fields, customIconId, icon, attachments, extraFields } = props.entry
 
-  const { id, fields } = group2Entries[selectedGroupId][entryIndex];
+  console.log("xxEntryForm", extraFields);
 
-  const {
-    title = '',
-    username = '',
-    password = '',
-    notes = '',
-    url = ''
-  } = fields;
-
-  const keydownAction = (e) => {
+  const onKeydown = (e: KeyboardEvent<HTMLButtonElement>) => {
     if (
       (e.code === 'KeyU' || e.code === 'KeyP') &&
       (isMacOs ? e.metaKey : e.ctrlKey)
@@ -55,7 +34,7 @@ export default function AccountForm(props: Props) {
       e.preventDefault();
       e.stopPropagation();
       window.utools.hideMainWindow();
-      handleCopy(e.code === 'KeyU' ? username : password)();
+      handleCopy(e.code === 'KeyU' ? fields.username : fields.password)();
     }
     if (
       (e.code === 'ArrowUp' || e.code === 'ArrowDown') &&
@@ -106,278 +85,32 @@ export default function AccountForm(props: Props) {
   //   setState(stateValue);
   // }
 
-  const handleInputChange = (field: string) => (e: InputEvent) => {
-    const value = e.target.value;
-    if (field === 'title' || field === 'username') {
-      // props.decryptAccountDic[props.entry._id][field] = value;
-      document.getElementById(id + '_' + field).innerText = value;
-    }
-    // setState({ [field]: value });
-    if (inputDelayTimer) {
-      clearTimeout(inputDelayTimer);
-    }
-    const doc = entries[entryIndex];
 
-    // inputDelayTimer = setTimeout(() => {
-    //   inputDelayTimer = null;
-    //   if (value) {
-    //     doc[field] = window.services.encryptValue(props.keyIV, value);
-    //   } else {
-    //     delete doc[field];
-    //   }
-    //   props.onUpdate(doc);
-    // }, 300);
+  // 复制
+  const handleCopy = (value?: string) => () => {
+    const status = value && window.utools.copyText(value);
+    status && setMessage({
+      type: 'success',
+      body: "复制成功"
+    })
   };
 
-  const handleCopy = (attr: string) => () => {
-    window.utools.copyText(fields[attr]);
-  };
+  const tabs: TabValue[] = [
+    {
+      label: "基本条目", icon: <DesignServicesIcon />, Comp: <Basis
+        fields={fields} otp={extraFields.otp}
+        icon={icon}
+        customIconId={customIconId}
+        onCopy={handleCopy}
+      />
+    },
+    { label: "高级条目", icon: <LibraryAddIcon />, Comp: <Advanced fields={extraFields} attachments={attachments} /> },
+    { label: "数据属性", icon: <AnnouncementIcon />, Comp: <AttrViewer groupId={props.entry.groupId} entryIndex={entryIndex} /> }
+  ]
 
-  const handlePasswordVisible = () => {
-    if (state.passwordEye) {
-      setState({ ...state, passwordEye: false });
-    } else {
-      setState({ ...state, passwordEye: true });
-    }
-  };
-
-  const handleShowRandomPassword = (e) => {
-    setState({ ...state, randomPasswordEl: e.currentTarget });
-    setTimeout(() => {
-      randomPasswordRef.generateRandom();
-    });
-  };
-
-  const handleCloseRandomPassword = () => {
-    setState({ ...state, randomPasswordEl: null });
-  };
-
-  const handleOpenLink = () => {
-    if (!url) return;
-    window.utools.hideMainWindow(false);
-    window.utools.shellOpenExternal(url);
-  };
-
-  const handleOkRandomPassword = () => {
-    handleInputChange('password')({
-      target: { value: randomPasswordRef.getPasswordValue() }
-    });
-    setState({ ...state, randomPasswordEl: null });
-  };
-
-  return (
-    <div className='account-form'>
-      <div>
-        <TextField
-          fullWidth
-          label='标题'
-          id='accountFormTitle'
-          onChange={handleInputChange('title')}
-          value={title}
-          variant='standard'
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position='start'>
-                <TitleIcon className='entry-form-prev-icon' />
-              </InputAdornment>
-            )
-          }}
-        />
-      </div>
-      <div>
-        <TextField
-          fullWidth
-          label='用户名'
-          onChange={handleInputChange('username')}
-          value={username}
-          variant='standard'
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position='start'>
-                <AccountBoxIcon className='entry-form-prev-icon' />
-              </InputAdornment>
-            ),
-            endAdornment: (
-              <InputAdornment position='end'>
-                <Tooltip
-                  title={
-                    '复制用户名，快捷键 ' +
-                    (isMacOs ? 'Command' : 'Ctrl') +
-                    '+U'
-                  }
-                  placement='top-end'
-                >
-                  <IconButton
-                    tabIndex={-1}
-                    onClick={handleCopy(username)}
-                    size='small'
-                  >
-                    <ContentCopyIcon />
-                  </IconButton>
-                </Tooltip>
-              </InputAdornment>
-            )
-          }}
-        />
-      </div>
-      <div>
-        <TextField
-          type={state.passwordEye ? 'text' : 'password'}
-          fullWidth
-          label='密码'
-          onChange={handleInputChange('password')}
-          value={password}
-          variant='standard'
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position='start'>
-                <LockIcon className='entry-form-prev-icon' />
-              </InputAdornment>
-            ),
-            endAdornment: (
-              <InputAdornment position='end'>
-                <Tooltip
-                  title={state.passwordEye ? '关闭明文' : '明文显示'}
-                  placement='top'
-                >
-                  <IconButton
-                    tabIndex={-1}
-                    onClick={handlePasswordVisible}
-                    size='small'
-                  >
-                    {state.passwordEye ? (
-                      <VisibilityOffIcon />
-                    ) : (
-                      <VisibilityIcon />
-                    )}
-                  </IconButton>
-                </Tooltip>
-                <span className='entry-form-icon-divider' />
-                <Tooltip title='生成随机密码' placement='top'>
-                  <IconButton
-                    tabIndex={-1}
-                    onClick={handleShowRandomPassword}
-                    size='small'
-                  >
-                    <ShuffleIcon />
-                  </IconButton>
-                </Tooltip>
-                <span className='entry-form-icon-divider' />
-                <Tooltip
-                  title={
-                    '复制密码，快捷键 ' + (isMacOs ? 'Command' : 'Ctrl') + '+P'
-                  }
-                  placement='top-end'
-                >
-                  <IconButton
-                    tabIndex={-1}
-                    onClick={handleCopy(password)}
-                    size='small'
-                  >
-                    <ContentCopyIcon />
-                  </IconButton>
-                </Tooltip>
-              </InputAdornment>
-            )
-          }}
-        />
-        <Popover
-          open={Boolean(state.randomPasswordEl)}
-          anchorEl={state.randomPasswordEl}
-          onClose={handleCloseRandomPassword}
-          anchorOrigin={{
-            vertical: 'top',
-            horizontal: 'right'
-          }}
-          transformOrigin={{
-            vertical: 'top',
-            horizontal: 'right'
-          }}
-        >
-          <div className='random-password-popover'>
-            <RandomPassword
-              from='accountform'
-              ref={(c) => {
-                randomPasswordRef = c as RandomPassword;
-              }}
-            />
-            <div className='random-password-popover-footer'>
-              <Button
-                onClick={handleOkRandomPassword}
-                variant='contained'
-                color='primary'
-                endIcon={<SendIcon />}
-              >
-                使用该密码
-              </Button>
-            </div>
-          </div>
-        </Popover>
-      </div>
-      <div>
-        <TextField
-          fullWidth
-          label='链接'
-          onChange={handleInputChange('url')}
-          value={url}
-          variant='standard'
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position='start'>
-                <LinkIcon className='entry-form-prev-icon' />
-              </InputAdornment>
-            ),
-            endAdornment: (
-              <InputAdornment position='end'>
-                <Tooltip title='浏览器中打开' placement='top'>
-                  <IconButton
-                    tabIndex={-1}
-                    onClick={handleOpenLink}
-                    size='small'
-                  >
-                    <OpenInBrowserIcon />
-                  </IconButton>
-                </Tooltip>
-                <span className='entry-form-icon-divider' />
-                <Tooltip title='复制链接' placement='top-end'>
-                  <IconButton
-                    tabIndex={-1}
-                    onClick={handleCopy(url)}
-                    size='small'
-                  >
-                    <ContentCopyIcon />
-                  </IconButton>
-                </Tooltip>
-              </InputAdornment>
-            )
-          }}
-        />
-      </div>
-      <div>
-        <TextField
-          fullWidth
-          label='备注'
-          multiline
-          rows={9}
-          value={notes}
-          onChange={handleInputChange('notes')}
-          InputLabelProps={{ shrink: true }}
-          variant='outlined'
-          className='entry-form-remark'
-        />
-      </div>
-      <div>
-        <TextField
-          fullWidth
-          label='说明x'
-          multiline
-          rows={9}
-          value={notes}
-          onChange={handleInputChange('notes')}
-          InputLabelProps={{ shrink: true }}
-          variant='outlined'
-        />
-      </div>
-    </div>
-  );
+  return <TabsContainer tabs={tabs} />;
 }
+
+
+
+export default React.memo(EntryForm)

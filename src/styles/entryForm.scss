@@ -1,0 +1,20 @@
+.entry-form {
+  &-basis {
+    box-sizing: border-box;
+
+    & > div {
+      padding-bottom: 26px;
+    }
+
+    &-icon-divider {
+      display: inline-block;
+      width: 6px;
+    }
+    &-prev-icon {
+      color: #ababab;
+    }
+    &-remark {
+      margin-top: 8px;
+    }
+  }
+}

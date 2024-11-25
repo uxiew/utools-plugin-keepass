@@ -1,15 +1,16 @@
 import { useDrag, useDrop } from 'react-dnd';
-import { useStore } from '../store';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import Grid from '@mui/material/Grid';
-// @ts-ignore
+import {
+  SafetyCheckOutlined as SafetyCheckOutlinedIcon,
+  AttachFileSharp as AttachFileSharpIcon
+} from '@mui/icons-material';
+import Grid from '@mui/material/Unstable_Grid2/Grid2';
 import faIcons from 'virtual:fortawesome-import';
-import type { Entry } from '../typings/data';
 import type { itemSource } from '../typings/dnd';
-
+import { shallow, useDataStore } from '../store';
 import '../styles/entryItem.scss';
 
-// return connectDropTarget(
+//  connectDropTarget(
 //   connectDragSource(
 //     <div style={{ opacity: isDragging ? 0 : 1 }} className='entry-item'>
 //       {isOver && canDrop && <div className='entry-item-sort' />}
@@ -32,17 +33,18 @@ import '../styles/entryItem.scss';
 
 interface Props {
   onMove: (fromIndex: number, toIndex: number) => void;
-  onClick: (index: number) => void;
   index: number;
-  isSelected: boolean;
 }
 
-export default function AccountItem(props: Props) {
-  const { isSelected, index } = props;
+export default function EntryItem(props: Props) {
+  const [groupId, entryId, entryIndex, group2Entries] = useDataStore(state => [state.groupId, state.entryId, state.entryIndex, state.group2Entries], shallow);
 
-  const { group2Entries, selectedGroupId } = useStore();
+  const [setIds, setIndexes] = useDataStore(state => [state.setIds, state.setIndexes], shallow);
 
-  const entry = group2Entries[selectedGroupId][index];
+  const entry = group2Entries[groupId][props.index];
+  // isSelected = { i === entryIndex
+
+  console.log("xxEntryItem", groupId, entryIndex);
 
   const [{ canDrop, isOver }, DropTarget] = useDrop(() => ({
     accept: 'account',
@@ -51,17 +53,17 @@ export default function AccountItem(props: Props) {
       isOver: monitor.isOver()
     }),
     canDrop(item: any, monitor) {
-      if (index - item.index === 1 || index === item.index) return false;
+      if (entryIndex - item.index === 1 || entryIndex === item.index) return false;
       return true;
     },
     drop(item: any, monitor) {
       if (monitor.didDrop()) {
         return;
       }
-      if (item.index < index) {
-        props.onMove(item.index, index - 1);
+      if (item.index < entryIndex) {
+        props.onMove(item.index, entryIndex - 1);
       } else {
-        props.onMove(item.index, index);
+        props.onMove(item.index, entryIndex);
       }
     }
   }));
@@ -70,39 +72,63 @@ export default function AccountItem(props: Props) {
     type: 'account',
     item: {
       entry: entry,
-      index: index
+      index: entryIndex
     },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     })
   }));
 
+
+  const onItemClick = () => {
+    setIds({
+      entryId: entry.id
+    })
+    setIndexes({ entryIndex: props.index })
+  }
+
+  const EntryIcon = () => entry.customIcon ? (
+    <img src={entry.customIcon} />
+  ) : (
+    <FontAwesomeIcon icon={faIcons[entry.iconId]} />
+  )
+
+
   return (
     <div
       ref={(node) => DragSource(DropTarget(node))}
       style={{ opacity: isDragging ? 0 : 1 }}
       className='entry-item'
+      onClick={onItemClick}
     >
       {isOver && canDrop && <div className='entry-item-sort' />}
       <Grid
         container
         alignItems='center'
+        justifyContent='center'
         className={
-          'entry-item-body' + (isSelected ? ' entry-item-selected' : '')
+          'entry-item-body' + (entryId === entry.id ? ' entry-item-selected' : '')
         }
       >
-        <Grid item>
-          {entry.customIcon ? (
-            <img src={entry.customIcon} />
-          ) : (
-            <FontAwesomeIcon icon={faIcons[entry.iconId]} />
-          )}
+        <Grid>
+          <EntryIcon />
         </Grid>
-        <Grid item xs={10}>
+        <Grid xs={8} className='entry-item-title'>
           <div id={entry.id + '_title'}>{entry.fields.title}</div>
           <div className='entry-item-username' id={entry.id + '_username'}>
             {entry.fields.username}
           </div>
+        </Grid>
+        <Grid maxWidth={20}>
+          {
+            entry.extraFields.otp && <SafetyCheckOutlinedIcon htmlColor='#849eab' />
+          }
+          {
+            entry.attachments.length > 0 && <AttachFileSharpIcon htmlColor='#849eab' />
+          }
+          {
+            !entry.extraFields.otp && !entry.attachments.length && <svg />
+          }
         </Grid>
       </Grid>
     </div>

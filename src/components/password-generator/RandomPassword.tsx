@@ -1,39 +1,35 @@
-import React from 'react';
-import FormGroup from '@mui/material/FormGroup';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Checkbox from '@mui/material/Checkbox';
-import TextField from '@mui/material/TextField';
-import IconButton from '@mui/material/IconButton';
-import Slider from '@mui/material/Slider';
-import Tooltip from '@mui/material/Tooltip';
-import InputAdornment from '@mui/material/InputAdornment';
-import TextFormatIcon from '@mui/icons-material/TextFormat';
-import GolfCourseIcon from '@mui/icons-material/GolfCourse';
-import VpnKeyIcon from '@mui/icons-material/VpnKey';
-import ReplayIcon from '@mui/icons-material/Replay';
+import React, { ChangeEvent, KeyboardEvent } from 'react';
+import { Checkbox, IconButton, Slider, Tooltip, InputAdornment, TextField, FormControlLabel, FormGroup } from '@mui/material';
+import {
+  TextFormat as TextFormatIcon,
+  GolfCourse as GolfCourseIcon,
+  VpnKey as VpnKeyIcon,
+  Replay as ReplayIcon,
+} from '@mui/icons-material';
 
-interface RProps {
+interface Props {
   from: string;
 }
 
-interface RState {
+interface State {
   specialCharacters: string;
   charTypes: string | string[];
   lengthValue: number;
   passwordValue: string;
 }
-export default class RandomPassword extends React.Component<RProps> {
+
+export default class RandomPassword extends React.Component<Props> {
   defaultSpecialCharacters = '!@#$%^&*()_+-=,.<>?/\\|[]{}:;"\'`~';
   lengthChangeTimeout: number | null = null;
-  state: RState;
+  state: State;
 
-  constructor(props: RProps) {
+  constructor(props: Props) {
     super(props);
     const specialCharacters =
       window.localStorage.getItem('specialCharacters@' + this.props.from) ||
       this.defaultSpecialCharacters;
 
-    let charTypes: RState['charTypes'] | null = window.localStorage.getItem(
+    let charTypes: State['charTypes'] | null = window.localStorage.getItem(
       'charTypes@' + this.props.from
     );
 
@@ -61,8 +57,9 @@ export default class RandomPassword extends React.Component<RProps> {
     };
   }
 
-  handleKeyDownSpecialCharacters = (e) => {
-    if ([8, 37, 39, 46].includes(e.keyCode)) return; // 删除 左右方向键 向后删除不处理
+  handleKeyDownSpecialCharacters = (e: KeyboardEvent<HTMLDivElement>) => {
+    // if ([8, 37, 39, 46].includes(e.keyCode)) return;
+    if (['Backspace', 'ArrowLeft', 'ArrowRight', 'Delete'].includes(e.key)) return; // 删除 左右方向键 向后删除不处理
     if (
       !this.defaultSpecialCharacters.includes(e.key) ||
       this.state.specialCharacters.includes(e.key)
@@ -71,7 +68,7 @@ export default class RandomPassword extends React.Component<RProps> {
     }
   };
 
-  handleChangeSpecialCharacters = (e) => {
+  handleChangeSpecialCharacters = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     for (let i = 0; i < value.length; i++) {
       if (value.charCodeAt(i) > 128) return;
@@ -83,11 +80,11 @@ export default class RandomPassword extends React.Component<RProps> {
     }, 50);
   };
 
-  handleCharChange = (e) => {
+  handleCharChange = (e: ChangeEvent<HTMLInputElement>) => {
     const key = e.target.value;
     if (e.target.checked) {
-      if (this.state.charTypes!.includes(key)) return;
-      (this.state.charTypes as []).push(key);
+      if (this.state.charTypes.includes(key)) return;
+      (this.state.charTypes as string[]).push(key);
     } else {
       if (this.state.charTypes!.length === 1) return;
       const index = this.state.charTypes!.indexOf(key);
@@ -104,21 +101,22 @@ export default class RandomPassword extends React.Component<RProps> {
     }, 50);
   };
 
-  handleLengthChange = (event, value) => {
-    value = value || parseInt(event.target.value);
+  handleLengthChange = (event: Event | ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, value?: number | number[]) => {
+    value = (value || parseInt(event.target?.value)) as number;
     if (value > 256) value = 256;
-    if (value < 1) value = 1;
+    if (value < 6) value = 6;
     this.setState({ lengthValue: value });
-    window.localStorage.setItem('lengthValue@' + this.props.from, value);
+    window.localStorage.setItem('lengthValue@' + this.props.from, String(value));
     if (this.lengthChangeTimeout) {
       clearTimeout(this.lengthChangeTimeout);
     }
-    this.lengthChangeTimeout = setTimeout(() => {
+    this.lengthChangeTimeout = window.setTimeout(() => {
       this.lengthChangeTimeout = null;
       this.generateRandom();
     }, 50);
   };
 
+  // 生成随机密码
   generateRandom = () => {
     const charTypes = this.state.charTypes as string;
     let sourceStr = '';
@@ -135,11 +133,7 @@ export default class RandomPassword extends React.Component<RProps> {
     this.setState({ passwordValue });
   };
 
-  handleReplay = () => {
-    this.generateRandom();
-  };
-
-  handlePasswordChange = (e) => {
+  handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (!value) {
       return this.generateRandom();
@@ -147,6 +141,7 @@ export default class RandomPassword extends React.Component<RProps> {
     this.setState({ passwordValue: value, lengthValue: value.length });
   };
 
+  // 获取生成的密码
   getPasswordValue = () => this.state.passwordValue;
 
   render() {
@@ -226,7 +221,7 @@ export default class RandomPassword extends React.Component<RProps> {
           <div className='random-password-length-box'>
             <div>
               <Slider
-                min={4}
+                min={6}
                 max={46}
                 valueLabelDisplay='auto'
                 value={lengthValue}
@@ -263,7 +258,7 @@ export default class RandomPassword extends React.Component<RProps> {
                 endAdornment: (
                   <InputAdornment position='end'>
                     <Tooltip title='重新生成' placement='top'>
-                      <IconButton onClick={this.handleReplay} color='primary'>
+                      <IconButton onClick={this.generateRandom} color='primary'>
                         <ReplayIcon />
                       </IconButton>
                     </Tooltip>

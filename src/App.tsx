@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Passwords from './Passwords';
-import Random from './password-generator/Random';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
-import type { Theme } from '@mui/material/styles';
+import Random from './components/password-generator';
+import { createTheme, ThemeProvider } from '@mui/material';
+import type { Theme } from '@mui/material';
+import OTP from './components/OTP';
 
 const themeDic: Record<string, Theme> = {
   light: createTheme({
@@ -37,45 +38,42 @@ const themeDic: Record<string, Theme> = {
   })
 };
 
-export default class App extends React.Component {
-  state = {
+export default function App() {
+  const [state, setState] = useState({
     code: '',
     theme: window.matchMedia('(prefers-color-scheme: dark)').matches
       ? 'dark'
       : 'light'
-  };
+  })
 
-  componentDidMount() {
+  useEffect(() => {
     // 进入插件
-    window.utools.onPluginEnter(({ code, type, payload }) => {
-      this.setState({ code });
+    window.utools.onPluginEnter(({ code }) => {
+      setState({ ...state, code });
+      // TODO 搜索k}
+      window.utools.setSubInput
+      console.log("onPluginEnter", code)
     });
     // 退出插件
     window.utools.onPluginOut(() => {
-      this.setState({ code: '' });
+      setState({ ...state, code: '' });
     });
+
     // 主题切换事件
     window
       .matchMedia('(prefers-color-scheme: dark)')
       .addEventListener('change', (e) => {
-        this.setState({ theme: e.matches ? 'dark' : 'light' });
+        setState({ ...state, theme: e.matches ? 'dark' : 'light' });
       });
-  }
+  }, [])
 
-  render() {
-    const { code, theme } = this.state;
-    if (code === 'password' || code === 'keepass')
-      return (
-        <ThemeProvider theme={themeDic[theme]}>
-          <Passwords />
-        </ThemeProvider>
-      );
-    if (code === 'random')
-      return (
-        <ThemeProvider theme={themeDic[theme]}>
-          <Random />
-        </ThemeProvider>
-      );
-    return false;
-  }
+  return <ThemeProvider theme={themeDic[state.theme]}>
+    {
+      ['password', 'keepass'].includes(state.code) ?
+        < Passwords /> : (state.code === 'random') ?
+          <Random /> : ['otp', 'totp'].includes(state.code) ?
+            // TODO
+            <Random />/* <OTP data="null" />  */ : null
+    }
+  </ThemeProvider >
 }

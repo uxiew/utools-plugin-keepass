@@ -1,0 +1,15 @@
+$color: #758e98;
+
+.entry-form-extrafields {
+  svg,button {
+    color: $color
+  }
+  button {
+    border-color: $color
+  }
+
+
+  > .MuiTextField-root {
+   margin:12px 0
+  }
+}

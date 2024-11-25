@@ -2,7 +2,7 @@
   & > div {
     padding-bottom: 20px;
   }
-  .random-password-label {
+  &-label {
     display: flex;
     align-items: center;
     padding-bottom: 10px;
@@ -11,9 +11,10 @@
       padding-left: 8px;
     }
   }
-  .random-password-length-box {
+  &-length-box {
     display: flex;
     align-items: center;
+
     & > div {
       &:first-child {
         flex: 1;

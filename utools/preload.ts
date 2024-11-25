@@ -1,7 +1,11 @@
+
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { kdbxDB as keepass, IconMap } from './keepass';
+export * as totp from './otp';
+
+export const clearClipboard = () => window.electron.clipboard.clear()
 
 export const getKeyIv = (passphrase: string) => {
   const hash1 = crypto.createHash('md5').update(passphrase).digest('hex');
@@ -37,6 +41,7 @@ export function decryptValue(keyiv: {
   );
   return decipher.update(data, 'hex', 'utf8') + decipher.final('utf8');
 }
+
 
 export function exportFile(content: string, ext = '.txt') {
   const saveFile = path.join(

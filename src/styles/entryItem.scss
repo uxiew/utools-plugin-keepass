@@ -1,19 +1,18 @@
 .entry-item {
   width: 100%;
 
-  .entry-item-body {
+  &-body {
     background-color: #fff;
     width: 100%;
     cursor: pointer;
-    // height: 48px;
-    padding: 4px 10px;
+    padding: 4px 0;
     box-sizing: border-box;
     min-height: 50px;
     word-wrap: break-word;
     word-break: break-all;
     border-bottom: 1px solid #eee;
     .entry-item-username {
-      color: rgba(0, 0, 0, 0.6);
+      color: rgba(30, 30, 30, .6);
       font-size: 12px;
     }
 
@@ -21,16 +20,19 @@
     svg {
       max-width: 24px;
       height: 24px;
-      padding-right: 10px;
     }
   }
-  .entry-item-sort {
+  &-sort {
     height: 1px;
     width: 100%;
     background-color: #3f51b5;
   }
-  .entry-item-selected {
+  &-selected {
     // background-color: rgba(0, 0, 0, 0.8);
     background-color: #ebebeb;
+  }
+
+  &-title {
+    margin: 10px;
   }
 }

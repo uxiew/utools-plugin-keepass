@@ -1,46 +1,39 @@
-import React, { useEffect, useState } from 'react';
-import GroupNode from './GroupNode';
+import { useEffect, useMemo } from 'react';
+import GroupItem from './GroupItem';
 import GroupRoot from './GroupRoot';
-import Tooltip from '@mui/material/Tooltip';
-import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
-import IconButton from '@mui/material/IconButton';
-import ArrowCircleDownIcon from '@mui/icons-material/ArrowCircleDown';
 import type { T_Entry, T_Group } from '../typings/data';
-import { useStore } from '../store';
+import { shallow, useDataStore } from '../store';
+import GroupFooter from './GroupFooter';
+import { useSetState } from 'ahooks';
+import "./styles.scss"
 
-interface TreeProps {
+interface GroupProps {
   onUpdate: (node: T_Group) => void;
   onDelete: (node: T_Group) => void;
   onCreate: (node: T_Group, parentNode: T_Group) => void;
-  onExport: (node: T_Group) => void;
   onAppend: (entry: any, targetGroupId: string) => void;
   onMove: (sourceNode: T_Group, targeNode: T_Group) => void;
-  onSelect: (node?: T_Group) => void;
   // groupIds: string[];
-  // group2Entry: Record<string, T_Entry[]>;
-  // groupTree: T_Group[];
 }
 
-export default function Group(props: TreeProps) {
-  const {
-    groups,
-    snackbarMessage,
-    group2Entries,
-    selectedGroupId,
-    setEntryIndex
-  } = useStore();
+export default function Group(props: GroupProps) {
+  const [groups, group2Entries] = useDataStore(state => [
+    state.groups,
+    state.group2Entries,
+  ]);
 
-  const [state, setState] = useState<{
-    expandIds: string[];
-    inputKey: string;
-    selectedIndex: string;
+  const setIds = useDataStore(state => state.setIds);
+
+  console.log("xxGroup", props)
+
+  const [state, setState] = useSetState<{
+    expandIds: string[],
+    selectedIndex: string,
   }>({
     expandIds: [],
-    inputKey: '',
     selectedIndex: ''
   });
+
 
   useEffect(() => {
     let expandIds = window.localStorage.getItem('Group.expandIds');
@@ -72,16 +65,14 @@ export default function Group(props: TreeProps) {
       }, 10);
     }
 
-    return unmount;
+    return () => {
+      window.localStorage.setItem(
+        'Group.expandIds',
+        JSON.stringify(state.expandIds)
+      );
+      window.localStorage.setItem('Group.selectedIndex', state.selectedIndex);
+    };
   }, []);
-
-  function unmount() {
-    window.localStorage.setItem(
-      'Group.expandIds',
-      JSON.stringify(state.expandIds)
-    );
-    window.localStorage.setItem('Group.selectedIndex', state.selectedIndex);
-  }
 
   function getNode(id?: string) {
     if (!id) return null;
@@ -89,8 +80,8 @@ export default function Group(props: TreeProps) {
     let target = groups[Number(keys.shift()) || 0];
     if (!target) return null;
     for (const index of keys) {
-      if (!target.childs) return null;
-      target = target.childs[Number(index)];
+      if (!target.items) return null;
+      target = target.items[Number(index)];
       if (!target) return null;
     }
     return target;
@@ -101,9 +92,9 @@ export default function Group(props: TreeProps) {
     const nodeIndex = key.substr(key.lastIndexOf('-') + 1);
     if (parentKey) {
       const parentNode = getNode(parentKey);
-      parentNode.childs.splice(nodeIndex, 1);
-      if (parentNode.childs.length === 0) {
-        delete parentNode.childs;
+      parentNode.items.splice(nodeIndex, 1);
+      if (parentNode.items.length === 0) {
+        delete parentNode.items;
         removeExpandNode(parentNode._id);
       }
     } else {
@@ -130,54 +121,7 @@ export default function Group(props: TreeProps) {
     );
   };
 
-  const handleCreate = () => {
-    // const node = { _id: '', name: '' };
-    // let inputKey = '';
-    // if (selectedIndex) {
-    //   if (selectedIndex.split('-').length > 7) return;
-    //   const parentNode = getNode(selectedIndex);
-    //   if (parentNode.childs) {
-    //     parentNode.childs.push(node);
-    //   } else {
-    //     parentNode.childs = [node];
-    //   }
-    //   inputKey = selectedIndex + '-' + (parentNode.childs.length - 1);
-    //   addExpandNode(parentNode._id);
-    // } else {
-    //   props.groupTree.push(node);
-    //   inputKey = '' + (props.groupTree.length - 1);
-    // }
-    // setState({ inputKey });
-  };
-
-  const handleDelete = () => {
-    const { inputKey, selectedIndex } = state;
-    if (inputKey) return;
-    if (!selectedIndex) return;
-    const node = getNode(selectedIndex);
-    if (node.childs) return;
-    if (group2Entries[node.id]) return;
-    deleteNode(selectedIndex);
-    props.onDelete(node);
-    select('');
-  };
-
-  const handleEdit = () => {
-    const { inputKey, selectedIndex } = state;
-    if (inputKey) return;
-    if (!selectedIndex) return;
-    setState({ ...state, inputKey: selectedIndex });
-  };
-
-  const handleExport = () => {
-    const { inputKey, selectedIndex } = state;
-    if (inputKey) return;
-    if (!selectedIndex) return;
-    const node = getNode(selectedIndex);
-    props.onExport(node);
-  };
-
-  const onUpdate = (key: string, value) => {
+  const onUpdate = (key: string, value: any) => {
     // const node = getNode(key);
     // if (!value) {
     //   if (node.name) {
@@ -236,26 +180,25 @@ export default function Group(props: TreeProps) {
     }
   };
 
+  // 选择组
   const select = (index: string, autoExpand = true) => {
-    // 切换 group 时，entry index 设为 0
-    setEntryIndex(0);
-    if (!index) {
-      setState({ ...state, selectedIndex: '' });
-      props.onSelect();
-      return;
-    }
-    const node = getNode(index);
+    if (!index) return;
+    const group = getNode(index);
 
-    if (!node) {
-      setState({ ...state, selectedIndex: '' });
-      props.onSelect();
+    if (!group) {
+      setState({ selectedIndex: '' });
+      onSelect();
       return;
     }
-    if (autoExpand && node.childs) {
-      addExpandNode(node.id);
+    if (autoExpand && group.items) {
+      addExpandNode(group.id);
     }
-    setState({ ...state, selectedIndex: index });
-    props.onSelect(node);
+    setState({ selectedIndex: index });
+    onSelect(group);
+  };
+
+  const onSelect = (group?: T_Group) => {
+    setIds({ groupId: group?.id });
   };
 
   // 组移动
@@ -331,61 +274,20 @@ export default function Group(props: TreeProps) {
     // select(newSelectKey);
   };
 
-  // 帐号追加
-  const append = (entry: T_Entry, targetId: string) => {
+  // 增加 group
+  const add = (entry: T_Entry, targetId: string) => {
     const targetGroup = getNode(targetId);
     props.onAppend(entry, targetGroup.id);
     select(targetId);
   };
 
-  const renderGroupNode = (
-    groupArr: T_Group[],
-    deep: number,
-    parentKey?: string
-  ) => {
-    parentKey = parentKey ? parentKey + '-' : '';
-
-    return groupArr.map((t, i) => {
-      const preIndex = parentKey! + i;
-      return (
-        <GroupNode
-          key={t.id}
-          groupId={t.id}
-          id={preIndex}
-          move={move}
-          append={append}
-          onClick={(e) => {
-            e.stopPropagation();
-            select(preIndex);
-          }}
-          onBlur={(e) => onUpdate(preIndex, e.target.value)}
-          onExpand={(e) => {
-            e.stopPropagation();
-            expand(t.id, preIndex);
-          }}
-          deep={deep}
-          isParent={!!t.childs}
-          isSelected={state.selectedIndex === preIndex}
-          isInput={state.inputKey === preIndex}
-          title={t.title}
-          iconId={t.iconId}
-          badge={group2Entries[t.id].length}
-        >
-          {t.childs &&
-            state.expandIds.includes(t.id) &&
-            renderGroupNode(t.childs, deep + 1, preIndex)}
-        </GroupNode>
-      );
-    });
-  };
-
   const isEdit = state.inputKey ? false : !!state.selectedIndex;
-  let isDelete = isEdit;
 
+  let isDelete = isEdit;
   if (isDelete) {
     const node = getNode(state.selectedIndex);
     if (node) {
-      if (node.childs) {
+      if (node.items) {
         isDelete = false;
       } else if (group2Entries[node.id]?.length > 0) {
         isDelete = false;
@@ -395,63 +297,44 @@ export default function Group(props: TreeProps) {
     }
   }
 
-  return (
-    <div className='tree-normal'>
-      <div className='tree-body'>
-        <GroupRoot move={move}>{renderGroupNode(groups, 0)}</GroupRoot>
-      </div>
+  const renderGroupItem = (
+    groupList: T_Group[],
+    deep: number,
+    parentKey: string = ''
+  ) => {
+    parentKey = parentKey && parentKey + '-'
+    return groupList.map((g, i) => {
+      const key = parentKey + i;
+      return (
+        <GroupItem
+          key={g.id}
+          groups={groups}
+          group={g}
+          indexKey={key}
+          deep={deep}
+          move={move}
+          isParent={!!g.items.length}
+          // append={add}
+          onExpand={(e) => {
+            e.stopPropagation();
+            expand(g.id, key);
+          }}
+          onBlur={(e) => onUpdate(key, e.target.value)}
+          isInput={state.inputKey === key}
+        >
+          {g.expanded && renderGroupItem(g.items, deep + 1, key)}
+        </GroupItem>
+      );
+    });
+  };
 
-      {/* ====底部==== */}
-      <div className='tree-footer'>
-        <Tooltip title='新增分组' placement='top'>
-          <div>
-            <IconButton
-              tabIndex={-1}
-              disabled={Boolean(state.inputKey)}
-              onClick={handleCreate}
-              size='small'
-            >
-              <CreateNewFolderIcon />
-            </IconButton>
-          </div>
-        </Tooltip>
-        <Tooltip title='修改分组' placement='top'>
-          <div>
-            <IconButton
-              tabIndex={-1}
-              disabled={!isEdit}
-              onClick={handleEdit}
-              size='small'
-            >
-              <EditIcon />
-            </IconButton>
-          </div>
-        </Tooltip>
-        <Tooltip title='导出分组帐号数据' placement='top'>
-          <div>
-            <IconButton
-              tabIndex={-1}
-              disabled={!isEdit}
-              onClick={handleExport}
-              size='small'
-            >
-              <ArrowCircleDownIcon />
-            </IconButton>
-          </div>
-        </Tooltip>
-        <Tooltip title='删除分组' placement='top'>
-          <div>
-            <IconButton
-              tabIndex={-1}
-              disabled={!isDelete}
-              onClick={handleDelete}
-              size='small'
-            >
-              <DeleteForeverIcon />
-            </IconButton>
-          </div>
-        </Tooltip>
-      </div>
+
+  const GroupItems = useMemo(() => renderGroupItem(groups, 0), [groups])
+
+  return (
+    <div className='group'>
+      <GroupRoot move={move}>{GroupItems}</GroupRoot>
+      <GroupFooter />
     </div>
   );
 }

@@ -1,8 +1,8 @@
+import { useState } from 'react';
 import { Button, Grid, TextField } from '@mui/material';
-import KeyIcon from '@mui/icons-material/Key';
+import { Key as KeyIcon } from '@mui/icons-material';
 import useStart from '../hooks/useStart';
 import type { actionType } from '.';
-import { useState } from 'react';
 
 interface Props {
   selectFile: (actionType: actionType) => string;
@@ -16,8 +16,6 @@ export default function openKdbx(props: Props) {
     kdbxFileName: '',
     KeyFileName: ''
   });
-
-  const errors = {};
 
   function handleOkClick() {
     props.onEnter(masterPassword);

@@ -1,58 +1,48 @@
-import React, { useEffect } from 'react';
-import './styles/home.scss';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DndProvider } from 'react-dnd';
+import {
+  Storage as StorageIcon
+} from '@mui/icons-material';
 import Group from './group';
 import EntryContainer from './entry';
-import Search from './Search';
-import SnackbarMessage from './SnackbarMessage';
-import ExportDialog from './ExportDialog';
-import type { AlertColor } from '@mui/material';
-import type { KdbxEntry, KdbxGroup } from 'kdbxweb';
+import Search from './components/Search';
+import Message from './components/Message';
+import './styles/home.scss';
+import { shallow, useDataStore } from './store';
+import CloudStorage from './cloud';
+
 import type { T_Entry, T_Group, Entry } from './typings/data';
-import { useStore } from './store';
+import EntryForm from './entry/EntryForm';
+import GroupDetail from './group/GroupDetail';
+import { useEffect, useState } from 'react';
 
 interface Props {
-  keyIV: string;
   onOut: () => void;
 }
 
-interface State {
-  selectedGroupId: string;
-  sortedGroup: string[];
-  searchKey: string;
-  exportData: { group: T_Group } | null;
-
-  group2Entry: Record<string, Entry[]>;
-  groupTree: T_Group[];
-  groupIds: string[];
-  decryptEntryDic?: Record<
-    string,
-    Partial<{ title: string; usename: string; entry: string }>
-  >;
-}
-
 export default function Home(props: Props) {
-  let detectLiveTimeout: NodeJS.Timeout | null = null;
 
-  // state: State = {
-  //   selectedGroupId: '',
-  //   sortedGroup: [],
-  //   searchKey: '',
-  //   snackbarMessage: { key: 0, type: 'info' as AlertColor, body: '' },
-  //   exportData: null,
-  //   group2Entry: {},
-  //   groupIds: [],
-  //   groupTree: []
-  // };
+  let detectLiveTimeout: number | null
+  const [
+    message,
+    groupId,
+    g2eMap,
+    entryIndex,
+  ] = useDataStore(state => [state.message, state.groupId, state.group2Entries, state.entryIndex], shallow);
+  const [
+    setMessage,
+    search
+  ] = useDataStore(state => [state.setMessage, state.search], shallow);
 
-  const { groups, snackbarMessage, setMessage, setSelectedId } = useStore();
+  const [searchResults, setSearchResults] = useState<T_Entry[]>([])
+
+  console.log("xxHome", message)
 
   /**
    * @description 窗口无焦点 5 分钟，自动退出
    */
   const handleDetectLive = () => {
-    detectLiveTimeout = setTimeout(() => {
+    detectLiveTimeout = window.setTimeout(() => {
       detectLiveTimeout = null;
       props.onOut();
     }, 5 * 60 * 1000);
@@ -210,37 +200,42 @@ export default function Home(props: Props) {
   //   return { groupTree, groupIds, group2Entry, decryptEntryDic };
   // }
 
-  // useEffect(() => {
-  //   setState(initKdbxData());
-  //   window.addEventListener('blur', handleDetectLive);
-  //   window.addEventListener('focus', handleClearDetectLiveTimeout);
-  //   window.utools.setSubInput(({ text }) => {
-  //     setState({ searchKey: text });
-  //   }, '标题/用户名搜索');
+  useEffect(() => {
+    window.utools.setSubInput(({ text }) => {
+      // setState({ searchKey: text });
+      // ahooks 节流
+      setSearchResults(search(text))
+      console.log("onPluginEntersad", text);
+    }, '搜索');
+  }, [])
 
-  //   return unmount;
-  // });
+  useEffect(() => {
+    window.addEventListener('blur', handleDetectLive);
+    window.addEventListener('focus', handleClearDetectLiveTimeout);
 
-  // function unmount() {
-  //   const { group2Entry, sortedGroup } = state;
-  //   if (sortedGroup.length > 0) {
-  //     for (const groupId of sortedGroup) {
-  //       if (groupId in group2Entry) {
-  //         const length = group2Entry[groupId].length;
-  //         for (let i = 0; i < length; i++) {
-  //           const account = group2Entry[groupId][i];
-  //           if (account.sort !== i) {
-  //             account.sort = i;
-  //             window.utools.db.put(account);
-  //           }
-  //         }
-  //       }
-  //     }
-  //   }
-  //   handleClearDetectLiveTimeout();
-  //   window.removeEventListener('blur', handleDetectLive);
-  //   window.removeEventListener('focus', handleClearDetectLiveTimeout);
-  // }
+    return function unmount() {
+      /* const { group2Entry, sortedGroup } = state;
+       if (sortedGroup.length > 0) {
+         for (const groupId of sortedGroup) {
+           if (groupId in group2Entry) {
+             const length = group2Entry[groupId].length;
+             for (let i = 0; i < length; i++) {
+               const account = group2Entry[groupId][i];
+               if (account.sort !== i) {
+                 account.sort = i;
+                 window.utools.db.put(account);
+               }
+             }
+           }
+         }
+       } */
+      handleClearDetectLiveTimeout();
+      window.removeEventListener('blur', handleDetectLive);
+      window.removeEventListener('focus', handleClearDetectLiveTimeout);
+    };
+  }, []);
+
+
 
   const alertDbError = () => {
     setMessage({
@@ -290,10 +285,6 @@ export default function Home(props: Props) {
       sourceNode.parentId = '';
     }
     handleGroupUpdate(sourceNode); */
-  };
-
-  const handleGroupSelect = (group?: T_Group) => {
-    setSelectedId({ selectedGroupId: group ? group.id : '' });
   };
 
   const handleEntryCreate = () => {
@@ -387,18 +378,14 @@ export default function Home(props: Props) {
     //   handleEntryUpdate(entry);
   };
 
-  const findGroupById = (id: string, childs: T_Group['childs']) => {
-    //   for (const c of childs) {
+  const findGroupById = (id: string, childs: T_Group['items']) => {
+    //   for (const c of items) {
     //     if (c._id === id) return c;
-    //     if (c.childs) {
-    //       return findGroupById(id, c.childs);
+    //     if (c.items) {
+    //       return findGroupById(id, c.items);
     //     }
     //   }
     //   return null;
-  };
-
-  const handleExport = (node: T_Group) => {
-    // setState({ exportData: { group: node } });
   };
 
   // if (!group2Entry) {
@@ -413,47 +400,50 @@ export default function Home(props: Props) {
   //   );
   // }
 
+  /**
+    名称： {window.kdbx.db.meta.name}
+    描述：  {window.kdbx.db.meta.desc}
+    生成器：  {window.kdbx.db.meta.generator}
+    */
+
+  const Detail = () => groupId && entryIndex >= 0
+    ? <EntryForm onUpdate={() => { }} entry={g2eMap[groupId][entryIndex]} />
+    : <GroupDetail />
+
+  /* groups={groups}
+  group2Entry={group2Entry}
+  searchKey={searchKey} */
   return (
     <div className='home'>
-      <SnackbarMessage message={snackbarMessage} />
-      {/* {searchKey ? (
-        <Search
-          keyIV={''}
-          onAccountUpdate={handleEntryUpdate}
-          groupTree={groupTree}
-          group2Entry={group2Entry}
-          searchKey={searchKey}
-        />
-      ) : ( */}
-      <DndProvider backend={HTML5Backend}>
-        <div className='home-body'>
-          <div>
-            {groups && (
+      <Message message={message} />
+      {
+        searchResults.length > 0 ? (
+          <Search
+            results={searchResults}
+            groupId={groupId}
+          />
+        ) : (
+          <div className='home-body'>
+            <DndProvider backend={HTML5Backend}>
               <Group
                 onUpdate={handleGroupUpdate}
                 onDelete={handleGroupDelete}
                 onCreate={handleGroupCreate}
-                onExport={handleExport}
                 onAppend={handleEntryGroupChange}
                 onMove={handleGroupMove}
-                onSelect={handleGroupSelect}
               />
-            )}
+              <EntryContainer
+                onCreate={handleEntryCreate}
+                onUpdate={handleEntryUpdate}
+                onDelete={handleEntryDelete}
+              />
+            </DndProvider>
+            {/* ----最右侧的详细--- */}
+            <Detail />
           </div>
-          <div>
-            <EntryContainer
-              onCreate={handleEntryCreate}
-              onUpdate={handleEntryUpdate}
-              onDelete={handleEntryDelete}
-            />
-          </div>
-        </div>
-      </DndProvider>
-      {/* )} */}
-      <ExportDialog
-      // data={exportData}
-      // group2Entry={group2Entry}
-      />
+        )
+      }
+      {/* <CloudStorage /> */}
     </div>
   );
 }

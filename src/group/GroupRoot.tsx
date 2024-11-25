@@ -1,4 +1,5 @@
-import type { EventHandler, ReactNode, SyntheticEvent } from 'react';
+import { memo } from 'react';
+import type { ReactNode } from 'react';
 import { useDrop } from 'react-dnd';
 
 interface Props {
@@ -14,7 +15,8 @@ interface collectedProps {
   canDrop: boolean;
 }
 
-export default function GroupRoot(props: Props) {
+function GroupRoot(props: Props) {
+  console.log("GroupRoot", props)
   const [{ isOverCurrent, canDrop }, DropTarget] = useDrop<
     itemSource,
     any,
@@ -38,15 +40,15 @@ export default function GroupRoot(props: Props) {
     }
   }));
 
-  const { children } = props;
 
   return (
     <div
+      className='group-body'
       ref={DropTarget}
-      className='tree-root'
       style={isOverCurrent && canDrop ? { opacity: 0.5 } : undefined}
     >
-      <div className='tree-root-child'>{children}</div>
+      <div className='group-root-child'>{props.children}</div>
     </div>
   );
 }
+export default memo(GroupRoot)

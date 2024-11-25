@@ -1,97 +1,112 @@
-import React from 'react';
+import { ChangeEvent, useEffect } from 'react';
+import { useSetState } from 'ahooks'
 import SubdirectoryArrowLeftIcon from '@mui/icons-material/SubdirectoryArrowLeft';
-import IconButton from '@mui/material/IconButton';
-import Button from '@mui/material/Button';
-import InputBase from '@mui/material/InputBase';
+import { Button, IconButton, InputBase } from '@mui/material';
 import Reset from './setting/Reset';
 
-export default class Door extends React.Component<{
+type Props = {
   onVerify: (passText: string, errorCallback: Function) => void;
-}> {
-  state = {
+}
+
+export default function Door(props: Props) {
+  const [state, setState] = useSetState({
     fail: false,
     passwordValue: '',
     resetPassword: false,
     isCapsLock: false,
     isComposition: false
-  };
+  })
 
-  handleEnter = () => {
-    if (this.state.fail) return;
-    this.props.onVerify(this.state.passwordValue, () => {
-      this.setState({ fail: true });
+  useEffect(() => {
+    window.addEventListener('keydown', detectCapsLock)
+    window.addEventListener('keyup', detectCapsLock)
+
+    function detectCapsLock(e: KeyboardEvent) {
+      if (e.getModifierState('CapsLock')) {
+        setState({ isCapsLock: true });
+      } else {
+        setState({ isCapsLock: false });
+      }
+    }
+
+    return () => {
+      window.removeEventListener('keydown', detectCapsLock)
+      window.removeEventListener('keyup', detectCapsLock)
+    }
+
+  }, [])
+
+
+  const handleEnter = () => {
+    if (state.fail) return;
+    props.onVerify(state.passwordValue, () => {
+      setState({ fail: true });
       setTimeout(() => {
-        this.setState({ fail: false });
+        setState({ fail: false });
       }, 1000);
     });
   };
 
-  handleInputChange = (event) => {
-    if (this.state.isComposition) return;
-    this.setState({ passwordValue: event.target.value });
+  const handleInput = (event: ChangeEvent<HTMLInputElement>) => {
+    if (state.isComposition) return;
+    setState({ passwordValue: event.target.value });
   };
 
-  handleInputKeydown = (event) => {
-    if (event.getModifierState('CapsLock')) {
-      if (!this.state.isCapsLock) this.setState({ isCapsLock: true });
-    } else {
-      if (this.state.isCapsLock) this.setState({ isCapsLock: false });
-    }
+  const handleInputKeydown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    const target = event.target as HTMLInputElement
     if (event.keyCode === 229) {
-      if (!this.state.isComposition) this.setState({ isComposition: true });
-      event.target.blur();
+      if (!state.isComposition) setState({ isComposition: true });
+      target.blur();
       setTimeout(() => {
-        event.target.focus();
+        target.focus();
       }, 300);
       return;
     }
-    if (this.state.isComposition) this.setState({ isComposition: false });
+    if (state.isComposition) setState({ isComposition: false });
     if (event.keyCode !== 13) return;
     event.preventDefault();
-    this.handleEnter();
+    handleEnter();
   };
 
-  handleResetClick = () => {
-    this.setState({ resetPassword: true });
+  const handleResetClick = () => {
+    setState({ resetPassword: true });
   };
 
-  handleResetOut = () => {
-    this.setState({ resetPassword: false });
+  const handleResetOut = () => {
+    setState({ resetPassword: false });
   };
 
-  render() {
-    const { fail, resetPassword, passwordValue, isCapsLock, isComposition } =
-      this.state;
-    if (resetPassword) return <Reset onOut={this.handleResetOut} />;
+  const { fail, resetPassword, passwordValue, isCapsLock, isComposition } =
+    state;
 
-    return (
-      <div className={'door-body' + (fail ? ' door-fail' : '')}>
-        <div>
-          <div className={'door-input' + (fail ? ' door-swing' : '')}>
-            <InputBase
-              autoFocus
-              fullWidth
-              type='password'
-              placeholder='主密码'
-              value={passwordValue}
-              onKeyDown={this.handleInputKeydown}
-              onChange={this.handleInputChange}
-            />
-            <div className='door-input-enter'>
-              <IconButton onClick={this.handleEnter}>
-                <SubdirectoryArrowLeftIcon />
-              </IconButton>
-            </div>
-            <div className='door-tooltip'>
-              {isCapsLock && <div>键盘大写锁定已打开</div>}
-              {isComposition && <div>请切换到英文输入法</div>}
-            </div>
-          </div>
+  if (resetPassword) return <Reset onOut={handleResetOut} />;
+
+  return (<div className={'door-body' + (fail ? ' door-fail' : '')}>
+    <div>
+      <div className={'door-input' + (fail ? ' door-swing' : '')}>
+        <InputBase
+          autoFocus
+          fullWidth
+          type='password'
+          placeholder='主密码'
+          value={passwordValue}
+          onKeyDown={handleInputKeydown}
+          onInput={handleInput}
+        />
+        <div className='door-input-enter'>
+          <IconButton onClick={handleEnter}>
+            <SubdirectoryArrowLeftIcon />
+          </IconButton>
         </div>
-        <div>
-          <Button onClick={this.handleResetClick}>打开或新建数据库</Button>
+        <div className='door-tooltip'>
+          {isCapsLock && <div>键盘大写锁定已打开</div>}
+          {isComposition && <div>请切换到英文输入法</div>}
         </div>
       </div>
-    );
-  }
+    </div>
+    <div>
+      <Button onClick={handleResetClick}>打开或新建数据库</Button>
+    </div>
+  </div>)
+
 }

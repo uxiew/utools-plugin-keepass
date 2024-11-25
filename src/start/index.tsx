@@ -3,12 +3,9 @@ import { useState } from 'react';
 import { Tabs, Tab, Box } from '@mui/material';
 import OpenKdbx from './open';
 import NewKdbx from './new';
-//@ts-ignore
-import zxcvbn from 'zxcvbn';
-
-import './style.scss';
 import type { kdbxDB } from '../../utools/keepass';
 import { openKdbx } from '../utils/keepass';
+import './style.scss';
 
 interface Props {
   onEnter: (keedb: kdbxDB) => void;
@@ -77,7 +74,7 @@ export default function Start(props: Props) {
           break;
       }
     } catch (error) {
-      return error;
+      console.log("error!!!")
     }
   };
 

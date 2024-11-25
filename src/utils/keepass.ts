@@ -1,30 +1,33 @@
-import fs from "node:fs";
+/**
+* @description 打开kdbx密码
+*/
+export async function openKdbx(password?: string,
+  kdbxFilePath?: string, kdbxKeyPath?: string,
+  kdbxFileData?: ArrayBuffer, kdbxKeyData?: ArrayBuffer) {
+  const { encryptValue, decryptValue, getKeyIv, keepass, readBuffer } = window.services
+  password = import.meta.env.VITE_TEST_PASSWORD || password
 
-
-
-export async function openKdbx(password?: string, kdbxFilePath?: string, kdbxKeyPath?: string, kdbxFileData?: ArrayBuffer,
-  kdbxKeyData?: ArrayBuffer) {
   const kdbxDB = window.utools.dbStorage.getItem('kdbx');
   if (kdbxDB) {
-    password = password ?? window.services.decryptValue(kdbxDB.keyIV, kdbxDB.password)
+    password = password ?? decryptValue(kdbxDB.authKV, kdbxDB.password)
     kdbxKeyPath = kdbxDB.kdbxKeyPath
     kdbxFilePath = kdbxDB.kdbxFilePath
-    kdbxFileData = window.services.readBuffer(kdbxFilePath!)
-    kdbxKeyData = window.services.readBuffer(kdbxKeyPath!)
+    kdbxFileData = readBuffer(kdbxFilePath!)
+    kdbxKeyData = readBuffer(kdbxKeyPath!)
   }
 
-  const kdbx = new window.services.keepass();
-  const passwordVal = window.services.keepass.generatPassword(password!);
+  const kdbx = new keepass();
+  const passwordVal = keepass.generatPassword(password!);
   const status = await kdbx.open(
     passwordVal,
     kdbxFileData!,
     kdbxKeyData
   );
-  if (!status) return;
-  const keyIV = window.services.getKeyIv(password!);
+  if (!status || !password) return;
+  const authKV = getKeyIv(password);
   utools.dbStorage.setItem('kdbx', {
-    keyIV,
-    password: window.services.encryptValue(keyIV, password!),
+    authKV,
+    password: encryptValue(authKV, password!),
     kdbxFilePath,
     kdbxKeyPath
   });

@@ -1,17 +1,8 @@
 import { useEffect, useState } from 'react';
 import EntryItem from './EntryItem';
 import EntryRoot from './EntryRoot';
-import EntryForm from './EntryForm';
-import Tooltip from '@mui/material/Tooltip';
-import AddIcon from '@mui/icons-material/Add';
-import RemoveIcon from '@mui/icons-material/Remove';
-import IconButton from '@mui/material/IconButton';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogTitle from '@mui/material/DialogTitle';
-import Button from '@mui/material/Button';
 import type { T_Entry } from '../typings/data';
-import { useStore } from '../store';
+import { shallow, useDataStore } from '../store';
 
 interface Props {
   onCreate: () => void;
@@ -19,12 +10,18 @@ interface Props {
   onDelete: (entry: T_Entry) => void;
   // sortedGroup: string[];
 }
-export default function EntryContainer(props: Props) {
-  const isMacOs = window.utools.isMacOS();
 
-  const { selectedGroupId, group2Entries, selectedEntryIndex, setEntryIndex } =
-    useStore();
-  const entries = group2Entries[selectedGroupId];
+const isMacOS = window.utools.isMacOS()
+export default function Entry(props: Props) {
+  const [entryIndex, group2Entries, groupId] =
+    useDataStore(state => [state.entryIndex, state.group2Entries, state.groupId], shallow);
+  const setIndexes = useDataStore(state => state.setIndexes);
+
+  console.log("xxEntry", groupId)
+
+  const entries = group2Entries[groupId];
+
+  if (!entries) return null;
 
   let [{ showDeleteConfirm }, setState] = useState<{
     showDeleteConfirm: boolean;
@@ -37,21 +34,21 @@ export default function EntryContainer(props: Props) {
       if (entries.length < 2) return;
       e.preventDefault();
       if (e.code === 'ArrowUp') {
-        if (selectedEntryIndex === 0) {
-          setEntryIndex(entries.length - 1);
+        if (entryIndex === 0) {
+          setIndexes({ entryIndex: entries.length - 1 });
         } else {
-          setEntryIndex(selectedEntryIndex - 1);
+          setIndexes({ entryIndex: entryIndex - 1 });
         }
       } else {
-        if (selectedEntryIndex === entries.length - 1) {
-          setEntryIndex(0);
+        if (entryIndex === entries.length - 1) {
+          setIndexes({ entryIndex: 0 });
         } else {
-          setEntryIndex(selectedEntryIndex + 1);
+          setIndexes({ entryIndex: entryIndex + 1 });
         }
       }
       return;
     }
-    if (e.code === 'KeyN' && (isMacOs ? e.metaKey : e.ctrlKey)) {
+    if (e.code === 'KeyN' && (isMacOS ? e.metaKey : e.ctrlKey)) {
       e.preventDefault();
       e.stopPropagation();
       window.utools.subInputBlur();
@@ -66,7 +63,7 @@ export default function EntryContainer(props: Props) {
     if (selectedIndex > 0) {
       setTimeout(() => {
         if (selectedIndex < entries.length) {
-          setEntryIndex(selectedEntryIndex);
+          setIndexes({ entryIndex });
         }
       }, 10);
     }
@@ -78,7 +75,7 @@ export default function EntryContainer(props: Props) {
   function unmount() {
     window.localStorage.setItem(
       'entries.selectedIndex',
-      selectedEntryIndex.toString()
+      entryIndex.toString()
     );
     window.removeEventListener('keydown', keydownAction);
   }
@@ -110,11 +107,6 @@ export default function EntryContainer(props: Props) {
   //   }
   // }
 
-  const handleSelect = (index: number) => {
-    if (selectedEntryIndex === index) return;
-    setEntryIndex(index);
-  };
-
   const handleCreate = () => {
     props.onCreate();
     setTimeout(() => {
@@ -137,82 +129,35 @@ export default function EntryContainer(props: Props) {
   const handleDelete = () => {
     if (!entries) return;
     setState((state) => ({ ...state, showDeleteConfirm: false }));
-    props.onDelete(entries[selectedEntryIndex]);
+    props.onDelete(entries[entryIndex]);
   };
 
   const handleMoveSort = (fromIndex: number, toIndex: number) => {
-    const selectedEntry = entries[selectedEntryIndex];
+    const selectedEntry = entries[entryIndex];
     const fromAccount = entries[fromIndex];
 
     entries.splice(fromIndex, 1);
     entries.splice(toIndex, 0, fromAccount);
-
     // if (!sortedGroup.includes(fromAccount.groupId)) {
     //   sortedGroup.push(fromAccount.groupId);
     // }
-    setEntryIndex(entries.indexOf(selectedEntry));
+    setIndexes({ entryIndex: entries.indexOf(selectedEntry) });
   };
 
-  if (!entries) return false;
-
   return (
-    <div className='entry-area'>
-      <div className='entry-list'>
-        <div className='entry-list-body'>
-          {entries.length && (
-            <EntryRoot onMove={handleMoveSort} index={entries.length}>
-              {entries.map((e, i) => (
-                <div key={i} onClick={() => handleSelect(i)}>
-                  <EntryItem
-                    onMove={handleMoveSort}
-                    index={i}
-                    isSelected={i === selectedEntryIndex}
-                    key={e.id}
-                  />
-                </div>
-              ))}
-            </EntryRoot>
-          )}
-        </div>
+    <div className='entry'>
+      <EntryRoot onMove={handleMoveSort} index={entries.length}>
+        {entries.map((e, i) => (
+          <EntryItem
+            key={e.id}
+            index={i}
+            onMove={handleMoveSort}
+          />
+        ))}
+      </EntryRoot>
 
-        {/* footer */}
-        <div className='entry-list-footer'>
-          <Tooltip
-            title={'新增帐号 ' + (isMacOs ? '⌘' : 'Ctrl') + '+N'}
-            placement='top'
-          >
-            <div>
-              <IconButton tabIndex={-1} onClick={handleCreate} size='small'>
-                <AddIcon />
-              </IconButton>
-            </div>
-          </Tooltip>
-          <Tooltip title='删除帐号' placement='top'>
-            <div>
-              <IconButton
-                tabIndex={-1}
-                disabled={entries.length === 0}
-                onClick={handleShowDeleteConfirm}
-                size='small'
-              >
-                <RemoveIcon />
-              </IconButton>
-            </div>
-          </Tooltip>
-          <Dialog open={showDeleteConfirm} onClose={handleCloseDeleteConfirm}>
-            <DialogTitle>确认删除此帐号?</DialogTitle>
-            <DialogActions>
-              <Button onClick={handleCloseDeleteConfirm}>取消</Button>
-              <Button onClick={handleDelete} color='primary' autoFocus>
-                删除
-              </Button>
-            </DialogActions>
-          </Dialog>
-        </div>
-      </div>
-      <div className='entry-area-right'>
-        {entries.length && <EntryForm onUpdate={props.onUpdate} />}
-      </div>
+      {/* footer */}
+      {/* <EntryFooter /> */}
     </div>
   );
 }

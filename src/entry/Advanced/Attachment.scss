@@ -1,0 +1,22 @@
+$color: #758e98;
+
+.entry-form-attachments {
+  svg,button {
+    color: $color
+  }
+  button {
+    border-color: $color
+  }
+
+  &-view {
+    max-width: 60%;
+    max-height: 80%;
+    padding: 10px;
+
+    & > .MuiPopover-paper {
+      overflow: auto;
+      padding: 10px;
+    }
+  }
+
+}

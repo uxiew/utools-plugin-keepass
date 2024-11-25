@@ -2,6 +2,7 @@ import React from 'react';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import CircularProgress from '@mui/material/CircularProgress';
+// @ts-ignore
 import zxcvbn from 'zxcvbn';
 
 export default class Reset extends React.Component<{
@@ -59,7 +60,7 @@ export default class Reset extends React.Component<{
           try {
             const plainVal = window.services.decryptValue(oldKeyIV, item[f]);
             item[f] = window.services.encryptValue(newKeyIV, plainVal);
-          } catch (e) {}
+          } catch (e) { }
         });
       });
       window.utools.db.bulkDocs(accounts);
